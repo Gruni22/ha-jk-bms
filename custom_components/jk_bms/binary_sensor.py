@@ -43,6 +43,17 @@ BINARY_SENSORS: tuple[JkBinaryDescription, ...] = (
         device_class=BinarySensorDeviceClass.PROBLEM,
         value_fn=lambda s: bool(s.errors_bitmask) if s.errors_bitmask is not None else None,
     ),
+    JkBinaryDescription(
+        key="balancing",
+        name="Balancing",
+        device_class=BinarySensorDeviceClass.RUNNING,
+        value_fn=lambda s: s.balancing,
+    ),
+    JkBinaryDescription(
+        key="dedicated_charger",
+        name="Dedicated charger",
+        value_fn=lambda s: s.dedicated_charger_switch,
+    ),
 )
 
 

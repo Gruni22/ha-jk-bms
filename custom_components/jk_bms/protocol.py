@@ -236,22 +236,74 @@ class BmsState:
     temperature_sensor_1: float | None = None  # °C
     temperature_sensor_2: float | None = None
     temperature_mos: float | None = None
+    temperature_sensor_count: int | None = None
 
     total_voltage: float | None = None      # V
     current: float | None = None            # A (positive = charge)
     power: float | None = None              # W
+    charging_power: float | None = None     # W (>=0)
+    discharging_power: float | None = None  # W (>=0)
     state_of_charge: float | None = None    # %
-    capacity_remaining_ah: float | None = None
+    capacity_remaining_ah: float | None = None   # abgeleitet: nominal * SOC/100
+    energy_remaining_wh: float | None = None      # abgeleitet: capacity_remaining * U
     nominal_capacity_ah: float | None = None
+    actual_capacity_ah: float | None = None
     cycle_count: int | None = None
     cycle_capacity_ah: float | None = None
 
     charging_switch: bool | None = None
     discharging_switch: bool | None = None
     balancer_switch: bool | None = None
+    dedicated_charger_switch: bool | None = None
     balancing: bool | None = None
+    charging: bool | None = None
+    discharging: bool | None = None
 
     errors_bitmask: int | None = None
+    errors_text: str | None = None
+    operation_mode_bitmask: int | None = None
+    operation_mode_text: str | None = None
+
+    # Geräte-Info / Strings
+    battery_type: str | None = None
+    software_version: str | None = None
+    manufacturer: str | None = None
+    device_id: str | None = None
+    protocol_version: int | None = None
+    total_runtime_seconds: int | None = None
+    total_runtime_formatted: str | None = None
+
+    # Settings / Schutzparameter
+    current_calibration_a: float | None = None
+    sleep_wait_time_s: int | None = None
+    low_capacity_alarm: int | None = None
+    total_overvoltage_protection_v: float | None = None
+    total_undervoltage_protection_v: float | None = None
+    cell_overvoltage_protection_v: float | None = None
+    cell_overvoltage_recovery_v: float | None = None
+    cell_overvoltage_delay_s: int | None = None
+    cell_undervoltage_protection_v: float | None = None
+    cell_undervoltage_recovery_v: float | None = None
+    cell_undervoltage_delay_s: int | None = None
+    cell_pressure_difference_protection_v: float | None = None
+    discharge_overcurrent_protection_a: float | None = None
+    discharge_overcurrent_delay_s: int | None = None
+    charge_overcurrent_protection_a: float | None = None
+    charge_overcurrent_delay_s: int | None = None
+    balance_starting_voltage_v: float | None = None
+    balance_opening_pressure_difference_v: float | None = None
+    power_tube_temp_protection_c: float | None = None
+    power_tube_temp_recovery_c: float | None = None
+    temp_sensor_protection_c: float | None = None
+    temp_sensor_recovery_c: float | None = None
+    temp_sensor_difference_protection_c: float | None = None
+    charge_high_temp_protection_c: float | None = None
+    discharge_high_temp_protection_c: float | None = None
+    charge_low_temp_protection_c: float | None = None
+    charge_low_temp_recovery_c: float | None = None
+    discharge_low_temp_protection_c: float | None = None
+    discharge_low_temp_recovery_c: float | None = None
+
     raw_length: int = 0
 
 
@@ -271,31 +323,136 @@ def _i32(data: bytes, off: int) -> int:
     return struct.unpack_from(">i", data, off)[0]
 
 
+def _cstr(data: bytes, off: int, width: int) -> str:
+    """Liest ein nullterminiertes ASCII-Feld fester Breite und trimmt es."""
+    raw = data[off:off + width]
+    return raw.split(b"\x00", 1)[0].decode("ascii", "replace").strip()
+
+
+# Warn-/Fehler-Bits aus Record 0x8B (uint16), Reihenfolge wie syssi/esphome-jk-bms.
+_ERROR_BITS: tuple[str, ...] = (
+    "Low capacity",                       # bit0
+    "Power tube overtemperature",         # bit1
+    "Charging overvoltage",               # bit2
+    "Discharging undervoltage",           # bit3
+    "Battery over temperature",           # bit4
+    "Charging overcurrent",               # bit5
+    "Discharging overcurrent",            # bit6
+    "Cell pressure difference",           # bit7
+    "Overtemperature in battery box",     # bit8
+    "Battery low temperature",            # bit9
+    "Cell overvoltage",                   # bit10
+    "Cell undervoltage",                  # bit11
+    "309_A protection",                   # bit12
+    "309_B protection",                   # bit13
+)
+
+# Betriebsmodus-Bits aus Record 0x8C (uint16).
+_OPERATION_MODE_BITS: tuple[str, ...] = (
+    "Charging",      # bit0
+    "Discharging",   # bit1
+    "Balancing",     # bit2
+    "Battery full",  # bit3
+)
+
+_BATTERY_TYPES: dict[int, str] = {
+    0: "Lithium iron phosphate",
+    1: "Ternary lithium",
+    2: "Lithium titanate",
+}
+
+# Record-ID -> (Feldname, Skalierung, signed, Nachkommastellen).
+# Alle Einträge sind 2-Byte-Records; round_digits == 0 ergibt einen int.
+# Breiten/Bedeutungen verifiziert gegen syssi/esphome-jk-bms (on_status_data_).
+_U16_RECORDS: dict[int, tuple[str, float, bool, int]] = {
+    0x8E: ("total_overvoltage_protection_v", 0.01, False, 2),
+    0x8F: ("total_undervoltage_protection_v", 0.01, False, 2),
+    0x90: ("cell_overvoltage_protection_v", 0.001, False, 3),
+    0x91: ("cell_overvoltage_recovery_v", 0.001, False, 3),
+    0x92: ("cell_overvoltage_delay_s", 1.0, False, 0),
+    0x93: ("cell_undervoltage_protection_v", 0.001, False, 3),
+    0x94: ("cell_undervoltage_recovery_v", 0.001, False, 3),
+    0x95: ("cell_undervoltage_delay_s", 1.0, False, 0),
+    0x96: ("cell_pressure_difference_protection_v", 0.001, False, 3),
+    0x97: ("discharge_overcurrent_protection_a", 1.0, False, 0),
+    0x98: ("discharge_overcurrent_delay_s", 1.0, False, 0),
+    0x99: ("charge_overcurrent_protection_a", 1.0, False, 0),
+    0x9A: ("charge_overcurrent_delay_s", 1.0, False, 0),
+    0x9B: ("balance_starting_voltage_v", 0.001, False, 3),
+    0x9C: ("balance_opening_pressure_difference_v", 0.001, False, 3),
+    0x9E: ("power_tube_temp_protection_c", 1.0, False, 0),
+    0x9F: ("power_tube_temp_recovery_c", 1.0, False, 0),
+    0xA0: ("temp_sensor_protection_c", 1.0, False, 0),
+    0xA1: ("temp_sensor_recovery_c", 1.0, False, 0),
+    0xA2: ("temp_sensor_difference_protection_c", 1.0, False, 0),
+    0xA3: ("charge_high_temp_protection_c", 1.0, False, 0),
+    0xA4: ("discharge_high_temp_protection_c", 1.0, False, 0),
+    0xA5: ("charge_low_temp_protection_c", 1.0, True, 0),
+    0xA6: ("charge_low_temp_recovery_c", 1.0, True, 0),
+    0xA7: ("discharge_low_temp_protection_c", 1.0, True, 0),
+    0xA8: ("discharge_low_temp_recovery_c", 1.0, True, 0),
+    0xAD: ("current_calibration_a", 0.001, False, 3),
+    0xB0: ("sleep_wait_time_s", 1.0, False, 0),
+}
+
+# Bekannte Records, die wir nur konsumieren (zur Sync-Erhaltung), aber nicht
+# als Entität anbieten. Breite = Datenbytes nach der Record-ID.
+_SKIP_RECORDS: dict[int, int] = {
+    0xAE: 1,   # protection board address
+    0xB2: 10,  # parameter password (nicht als Sensor exponiert)
+    0xB5: 4,   # manufacturing date (unparsed)
+    0xB8: 1,   # start current calibration flag
+}
+
+
+def _fmt_runtime(seconds: int) -> str:
+    """Sekunden -> 'Xd Yh Zm'."""
+    minutes, _ = divmod(int(seconds), 60)
+    hours, minutes = divmod(minutes, 60)
+    days, hours = divmod(hours, 24)
+    return f"{days}d {hours}h {minutes}m"
+
+
 def parse_status_payload(payload: bytes) -> BmsState:
     """Dekodiert einen 0x06 status frame.
 
     Layout-Quelle: syssi/esphome-jk-bms components/jk_bms/jk_bms.cpp::
-    on_status_data_(). Felder werden über typisierte Records eingelesen:
+    on_status_data_(). Felder werden über typisierte Records eingelesen.
+    Wichtig: Jeder Record hat eine feste Breite; sie MUSS korrekt konsumiert
+    werden, sonst desynchronisiert der record-by-record Strom (z. B. ist
+    0xAD = current calibration mit 2 Byte, nicht der Balancer-Switch).
 
         0x79  cell info (variable length, 3 bytes per cell)
-        0x80  power tube temperature (°C, /10? – Skalierung in i16)
-        0x81  sensor 1 temperature
-        0x82  sensor 2 temperature
-        0x83  total voltage (uint16 *0.01 V)
-        0x84  current (int16 *0.01 A)  -- bei manchen Firmwares offset/sign anders
-        0x85  SOC (uint8 %)
-        0x86  num temp sensors
-        0x87  cycle count uint16
-        0x89  total cycle capacity uint32 (Ah)
-        0x8A  cell count uint16
-        0x8B  battery warning bitmask uint16
-        0x8C  battery status bitmask uint16
-        0xAB  charging switch
-        0xAC  discharging switch
-        0xAD  balancer switch
+        0x80  power tube temperature (i16, °C)
+        0x81  sensor 1 temperature (i16, °C)
+        0x82  sensor 2 temperature (i16, °C)
+        0x83  total voltage (u16 *0.01 V)
+        0x84  current (u16, bit15 = Vorzeichen-Flag, *0.01 A)
+        0x85  SOC (u8 %)
+        0x86  num temp sensors (u8)
+        0x87  cycle count (u16)
+        0x89  total cycle capacity (u32 Ah)
+        0x8A  cell count / battery strings (u16)
+        0x8B  warning/error bitmask (u16)
+        0x8C  operation mode bitmask (u16)
+        0x8E..0xB0  Schutz-/Settings-Records (siehe _U16_RECORDS)
+        0x9D  active balance switch (u8)  -> balancer_switch
+        0xAA  total battery capacity setting (u32 Ah)  -> nominal_capacity_ah
+        0xAB  charging switch (u8)
+        0xAC  discharging switch (u8)
+        0xAF  battery type (u8 enum)
+        0xB1  low capacity alarm (u8 %)
+        0xB3  dedicated charger switch (u8)
+        0xB4  device id (8-byte string)
+        0xB6  total runtime (u32 s)
+        0xB7  software version (15-byte string)
+        0xB9  actual battery capacity (u32 Ah)
+        0xBA  manufacturer (24-byte string)
+        0xC0  protocol version (u8)
 
-    Wir verarbeiten record-by-record. Unbekannte Records werden übersprungen,
-    fehlende Felder bleiben None.
+    Restkapazität ist KEIN eigener Record, sondern wird abgeleitet
+    (nominal_capacity_ah * SOC / 100). Unbekannte Records werden mit 2 Byte
+    übersprungen (Fallback); bei vollständiger Breitentabelle tritt das nicht auf.
     """
     state = BmsState(raw_length=len(payload))
     i = 0
@@ -335,7 +492,7 @@ def parse_status_payload(payload: bytes) -> BmsState:
         elif record == 0x80:
             if i + 2 > n:
                 break
-            state.temperature_mos = _i16(payload, i)
+            state.temperature_mos = float(_i16(payload, i))
             i += 2
         elif record == 0x81:
             if i + 2 > n:
@@ -350,7 +507,7 @@ def parse_status_payload(payload: bytes) -> BmsState:
         elif record == 0x83:
             if i + 2 > n:
                 break
-            state.total_voltage = _u16(payload, i) * 0.01
+            state.total_voltage = round(_u16(payload, i) * 0.01, 2)
             i += 2
         elif record == 0x84:
             if i + 2 > n:
@@ -369,7 +526,9 @@ def parse_status_payload(payload: bytes) -> BmsState:
             state.state_of_charge = float(payload[i])
             i += 1
         elif record == 0x86:
-            # Anzahl Temperatursensoren – meist 1 Byte, ignorieren
+            if i + 1 > n:
+                break
+            state.temperature_sensor_count = payload[i]
             i += 1
         elif record == 0x87:
             if i + 2 > n:
@@ -391,30 +550,137 @@ def parse_status_payload(payload: bytes) -> BmsState:
                 break
             state.errors_bitmask = _u16(payload, i)
             i += 2
+        elif record == 0x8C:
+            if i + 2 > n:
+                break
+            state.operation_mode_bitmask = _u16(payload, i)
+            i += 2
+        elif record == 0x9D:
+            # Active balance switch (Balancer-Freigabe), 1 Byte.
+            if i + 1 > n:
+                break
+            state.balancer_switch = bool(payload[i])
+            i += 1
         elif record == 0xAA:
             if i + 4 > n:
                 break
             state.nominal_capacity_ah = float(_u32(payload, i))
             i += 4
-        elif record in (0xAB, 0xAC, 0xAD):
+        elif record == 0xAB:
             if i + 1 > n:
                 break
-            val = bool(payload[i])
-            if record == 0xAB:
-                state.charging_switch = val
-            elif record == 0xAC:
-                state.discharging_switch = val
-            elif record == 0xAD:
-                state.balancer_switch = val
+            state.charging_switch = bool(payload[i])
             i += 1
+        elif record == 0xAC:
+            if i + 1 > n:
+                break
+            state.discharging_switch = bool(payload[i])
+            i += 1
+        elif record == 0xAF:
+            if i + 1 > n:
+                break
+            state.battery_type = _BATTERY_TYPES.get(payload[i], f"Unknown ({payload[i]})")
+            i += 1
+        elif record == 0xB1:
+            if i + 1 > n:
+                break
+            state.low_capacity_alarm = payload[i]
+            i += 1
+        elif record == 0xB3:
+            if i + 1 > n:
+                break
+            state.dedicated_charger_switch = bool(payload[i])
+            i += 1
+        elif record == 0xB4:
+            if i + 8 > n:
+                break
+            state.device_id = _cstr(payload, i, 8)
+            i += 8
+        elif record == 0xB6:
+            if i + 4 > n:
+                break
+            secs = _u32(payload, i)
+            state.total_runtime_seconds = secs
+            state.total_runtime_formatted = _fmt_runtime(secs)
+            i += 4
+        elif record == 0xB7:
+            if i + 15 > n:
+                break
+            state.software_version = _cstr(payload, i, 15)
+            i += 15
+        elif record == 0xB9:
+            if i + 4 > n:
+                break
+            state.actual_capacity_ah = float(_u32(payload, i))
+            i += 4
+        elif record == 0xBA:
+            if i + 24 > n:
+                break
+            # Manche Firmwares stellen "Input Userdata" voran; nur ASCII behalten.
+            state.manufacturer = _cstr(payload, i, 24)
+            i += 24
+        elif record == 0xC0:
+            if i + 1 > n:
+                break
+            state.protocol_version = payload[i]
+            i += 1
+        elif record in _U16_RECORDS:
+            if i + 2 > n:
+                break
+            attr, scale, signed, digits = _U16_RECORDS[record]
+            raw_val = _i16(payload, i) if signed else _u16(payload, i)
+            value: float | int = raw_val * scale
+            value = int(round(value)) if digits == 0 else round(value, digits)
+            setattr(state, attr, value)
+            i += 2
+        elif record in _SKIP_RECORDS:
+            i += _SKIP_RECORDS[record]
         else:
-            # Unbekannter Record – versuche, einen plausiblen Skip zu finden.
-            # Heuristik: 2 Byte. Wenn das zu Frame-Ende führt, ok.
+            # Unbekannter Record – plausibler Skip (2 Byte). Bei vollständiger
+            # Breitentabelle oben sollte dieser Zweig nicht erreicht werden.
             i += 2
 
-    # Power = U * I, wenn beides bekannt
+    # --- Abgeleitete Werte ---
     if state.total_voltage is not None and state.current is not None:
         state.power = round(state.total_voltage * state.current, 2)
+
+    if state.power is not None:
+        state.charging_power = round(state.power, 2) if state.power > 0 else 0.0
+        state.discharging_power = round(-state.power, 2) if state.power < 0 else 0.0
+
+    # Lade-/Entlade-Status aus Stromrichtung (Hysterese 0.05 A).
+    if state.current is not None:
+        state.charging = state.current > 0.05
+        state.discharging = state.current < -0.05
+
+    # Restkapazität: kein eigener Record, abgeleitet aus Nennkapazität und SOC.
+    if state.nominal_capacity_ah is not None and state.state_of_charge is not None:
+        state.capacity_remaining_ah = round(
+            state.nominal_capacity_ah * state.state_of_charge / 100.0, 3
+        )
+        if state.total_voltage is not None:
+            state.energy_remaining_wh = round(
+                state.capacity_remaining_ah * state.total_voltage, 1
+            )
+
+    # Fehler- und Betriebsmodus-Klartext aus den Bitmasken.
+    if state.errors_bitmask is not None:
+        active = [
+            name
+            for bit, name in enumerate(_ERROR_BITS)
+            if state.errors_bitmask & (1 << bit)
+        ]
+        state.errors_text = ", ".join(active) if active else "OK"
+
+    if state.operation_mode_bitmask is not None:
+        modes = [
+            name
+            for bit, name in enumerate(_OPERATION_MODE_BITS)
+            if state.operation_mode_bitmask & (1 << bit)
+        ]
+        state.operation_mode_text = ", ".join(modes) if modes else "Idle"
+        # Aktives Balancing (Bit 2) ergänzend zum Freigabe-Schalter (0x9D).
+        state.balancing = bool(state.operation_mode_bitmask & (1 << 2))
 
     return state
 

@@ -52,7 +52,10 @@ FRAME_TYPE_ACTIVE: Final = 0x02
 # Quelle: components/jk_bms/*.cpp in syssi/esphome-jk-bms
 REG_CHARGING_SWITCH: Final = 0xAB
 REG_DISCHARGING_SWITCH: Final = 0xAC
-REG_BALANCER_SWITCH: Final = 0xAD
+# Balancer-Freigabe ist Record/Register 0x9D ("active balance switch"), verifiziert
+# gegen syssi/esphome-jk-bms. 0xAD ist hingegen "current calibration" (2 Byte) —
+# der frühere Wert 0xAD hätte den Balancer-Befehl auf die Strom-Kalibrierung geschrieben.
+REG_BALANCER_SWITCH: Final = 0x9D
 
 REG_TOTAL_BATTERY_CAPACITY: Final = 0xAA   # Ah, uint32
 REG_CELL_COUNT: Final = 0xA9

@@ -3,43 +3,123 @@
     "step": {
       "user": {
         "title": "JK BMS",
-        "description": "Wähle den seriellen Port deines USB-TTL-Adapters.",
+        "description": "Choose the serial port of your USB-TTL adapter.",
         "data": {
-          "serial_port": "Serieller Port",
-          "manual_path": "Pfad manuell eingeben",
+          "serial_port": "Serial port",
+          "manual_path": "Enter path manually",
           "name": "Name",
           "baudrate": "Baudrate",
-          "protocol": "Protokoll",
-          "device_address": "BMS-Adresse",
-          "scan_interval": "Abfrageintervall (s)"
+          "protocol": "Protocol",
+          "device_address": "BMS address",
+          "scan_interval": "Scan interval (s)"
         }
       },
       "manual": {
-        "title": "JK BMS – manueller Port",
+        "title": "JK BMS – manual port",
         "data": {
-          "serial_port": "Geräte-Pfad (/dev/...)",
+          "serial_port": "Device path (/dev/...)",
           "name": "Name",
           "baudrate": "Baudrate",
-          "protocol": "Protokoll",
-          "device_address": "BMS-Adresse",
-          "scan_interval": "Abfrageintervall (s)"
+          "protocol": "Protocol",
+          "device_address": "BMS address",
+          "scan_interval": "Scan interval (s)"
         }
       }
     },
     "error": {
-      "cannot_connect": "Keine Antwort vom BMS auf diesem Port."
+      "cannot_connect": "No response from BMS on this port."
     },
     "abort": {
-      "already_configured": "Dieser Port ist bereits konfiguriert."
+      "already_configured": "This port is already configured."
     }
   },
   "options": {
     "step": {
       "init": {
         "data": {
-          "scan_interval": "Abfrageintervall (s)"
+          "scan_interval": "Scan interval (s)"
         }
       }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "total_voltage": { "name": "Total voltage" },
+      "current": { "name": "Current" },
+      "power": { "name": "Power" },
+      "state_of_charge": { "name": "State of charge" },
+      "cell_avg_voltage": { "name": "Average cell voltage" },
+      "cell_delta_voltage": { "name": "Delta cell voltage" },
+      "cell_min_voltage": { "name": "Min cell voltage" },
+      "cell_max_voltage": { "name": "Max cell voltage" },
+      "cell_min_index": { "name": "Min voltage cell" },
+      "cell_max_index": { "name": "Max voltage cell" },
+      "temperature_sensor_1": { "name": "Temperature sensor 1" },
+      "temperature_sensor_2": { "name": "Temperature sensor 2" },
+      "temperature_mos": { "name": "MOSFET temperature" },
+      "cycle_count": { "name": "Charging cycles" },
+      "cycle_capacity_ah": { "name": "Total cycle capacity" },
+      "cell_count": { "name": "Cell count" },
+      "charging_power": { "name": "Charging power" },
+      "discharging_power": { "name": "Discharging power" },
+      "capacity_remaining_ah": { "name": "Capacity remaining" },
+      "energy_remaining_wh": { "name": "Energy remaining" },
+      "nominal_capacity_ah": { "name": "Nominal capacity" },
+      "actual_capacity_ah": { "name": "Actual capacity" },
+      "temperature_sensor_count": { "name": "Temperature sensors" },
+      "operation_mode": { "name": "Operation mode" },
+      "errors": { "name": "Errors" },
+      "battery_type": { "name": "Battery type" },
+      "device_id": { "name": "Device" },
+      "software_version": { "name": "Software version" },
+      "manufacturer": { "name": "Manufacturer" },
+      "protocol_version": { "name": "Protocol version" },
+      "total_runtime": { "name": "Total runtime" },
+      "total_runtime_formatted": { "name": "Total runtime formatted" },
+      "current_calibration": { "name": "Current calibration" },
+      "sleep_wait_time": { "name": "Sleep wait time" },
+      "low_capacity_alarm": { "name": "Low capacity alarm" },
+      "total_overvoltage_protection": { "name": "Total overvoltage protection" },
+      "total_undervoltage_protection": { "name": "Total undervoltage protection" },
+      "cell_overvoltage_protection": { "name": "Cell overvoltage protection" },
+      "cell_overvoltage_recovery": { "name": "Cell overvoltage recovery" },
+      "cell_overvoltage_delay": { "name": "Cell overvoltage delay" },
+      "cell_undervoltage_protection": { "name": "Cell undervoltage protection" },
+      "cell_undervoltage_recovery": { "name": "Cell undervoltage recovery" },
+      "cell_undervoltage_delay": { "name": "Cell undervoltage delay" },
+      "cell_pressure_difference_protection": { "name": "Cell pressure difference protection" },
+      "discharge_overcurrent_protection": { "name": "Discharge overcurrent protection" },
+      "discharge_overcurrent_delay": { "name": "Discharge overcurrent delay" },
+      "charge_overcurrent_protection": { "name": "Charge overcurrent protection" },
+      "charge_overcurrent_delay": { "name": "Charge overcurrent delay" },
+      "balance_starting_voltage": { "name": "Balance starting voltage" },
+      "balance_opening_pressure_difference": { "name": "Balance opening pressure difference" },
+      "power_tube_temp_protection": { "name": "Power tube temperature protection" },
+      "power_tube_temp_recovery": { "name": "Power tube temperature recovery" },
+      "temp_sensor_protection": { "name": "Temperature sensor protection" },
+      "temp_sensor_recovery": { "name": "Temperature sensor recovery" },
+      "temp_sensor_difference_protection": { "name": "Temperature sensor difference protection" },
+      "charge_high_temp_protection": { "name": "Charge high temperature protection" },
+      "discharge_high_temp_protection": { "name": "Discharge high temperature protection" },
+      "charge_low_temp_protection": { "name": "Charge low temperature protection" },
+      "charge_low_temp_recovery": { "name": "Charge low temperature recovery" },
+      "discharge_low_temp_protection": { "name": "Discharge low temperature protection" },
+      "discharge_low_temp_recovery": { "name": "Discharge low temperature recovery" }
+    },
+    "binary_sensor": {
+      "charging_state": { "name": "Charging" },
+      "discharging_state": { "name": "Discharging" },
+      "error_present": { "name": "Error" },
+      "balancing": { "name": "Balancing" },
+      "dedicated_charger": { "name": "Dedicated charger" }
+    },
+    "switch": {
+      "charging_switch": { "name": "Charging enabled" },
+      "discharging_switch": { "name": "Discharging enabled" },
+      "balancer_switch": { "name": "Balancer enabled" }
+    },
+    "number": {
+      "balance_trigger_voltage": { "name": "Balance trigger voltage" }
     }
   }
 }
