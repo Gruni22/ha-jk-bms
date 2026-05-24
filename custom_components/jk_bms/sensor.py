@@ -19,7 +19,7 @@ from homeassistant.const import (
     UnitOfPower,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from .const import DOMAIN
@@ -171,16 +171,30 @@ async def async_setup_entry(
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     coordinator: JkBmsCoordinator = hass.data[DOMAIN][entry.entry_id]
-    entities: list[SensorEntity] = [
-        JkBmsSensor(coordinator, desc) for desc in SENSORS
-    ]
-    # Per-cell-Sensoren. Initial: bis 24 Zellen anlegen, ungenutzte bleiben unknown.
-    max_cells = 24
-    cells_now = coordinator.data.cell_count or 0
-    for i in range(1, max(max_cells, cells_now) + 1):
-        entities.append(JkBmsCellSensor(coordinator, i))
+    async_add_entities(JkBmsSensor(coordinator, desc) for desc in SENSORS)
 
-    async_add_entities(entities)
+    # Per-Cell-Sensoren: Anzahl wird aus den BMS-Daten autodetektiert. Es werden
+    # nur so viele Sensoren angelegt, wie das BMS tatsächlich Zellen meldet.
+    # Wächst die erkannte Zellenzahl bei einem späteren Poll (oder lieferte der
+    # erste Poll noch keine Zelldaten), werden fehlende Sensoren nachgelegt.
+    known_cells = 0
+
+    @callback
+    def _sync_cell_sensors() -> None:
+        nonlocal known_cells
+        data = coordinator.data
+        if data is None:
+            return
+        detected = len(data.cell_voltages) if data.cell_voltages else (data.cell_count or 0)
+        if detected <= known_cells:
+            return
+        async_add_entities(
+            JkBmsCellSensor(coordinator, i) for i in range(known_cells + 1, detected + 1)
+        )
+        known_cells = detected
+
+    _sync_cell_sensors()
+    entry.async_on_unload(coordinator.async_add_listener(_sync_cell_sensors))
 
 
 class JkBmsSensor(JkBmsBaseEntity, SensorEntity):
