@@ -1,0 +1,12 @@
+{
+  "domain": "jk_bms",
+  "name": "JK BMS",
+  "version": "0.1.0",
+  "documentation": "https://github.com/Gruni22/ha-jk-bms",
+  "issue_tracker": "https://github.com/Gruni22/ha-jk-bms/issues",
+  "codeowners": ["@Gruni22"],
+  "config_flow": true,
+  "iot_class": "local_polling",
+  "requirements": ["pyserial-asyncio==0.6"],
+  "dependencies": []
+}

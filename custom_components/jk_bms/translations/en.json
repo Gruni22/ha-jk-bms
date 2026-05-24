@@ -1,0 +1,45 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "JK BMS",
+        "description": "Choose the serial port of your USB-TTL adapter.",
+        "data": {
+          "serial_port": "Serial port",
+          "manual_path": "Enter path manually",
+          "name": "Name",
+          "baudrate": "Baudrate",
+          "protocol": "Protocol",
+          "device_address": "BMS address",
+          "scan_interval": "Scan interval (s)"
+        }
+      },
+      "manual": {
+        "title": "JK BMS – manual port",
+        "data": {
+          "serial_port": "Device path (/dev/...)",
+          "name": "Name",
+          "baudrate": "Baudrate",
+          "protocol": "Protocol",
+          "device_address": "BMS address",
+          "scan_interval": "Scan interval (s)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No response from BMS on this port."
+    },
+    "abort": {
+      "already_configured": "This port is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "data": {
+          "scan_interval": "Scan interval (s)"
+        }
+      }
+    }
+  }
+}

@@ -1,151 +1,108 @@
 # ha-jk-bms
 
-Home Assistant custom component to monitor a Jikong Battery Management System (JK-BMS) via UART-TTL
+Home Assistant Custom Integration for **Jikong (JK) Battery Management Systems** over a direct **USB-TTL** connection to the Raspberry Pi (no ESP needed).
 
-![Lovelace entities card](lovelace-entities-card.png "Lovelace entities card")
+> Inspired by and protocol-compatible with [`syssi/esphome-jk-bms`](https://github.com/syssi/esphome-jk-bms). This is a clean-room Python port targeting Home Assistant directly.
 
-## Supported devices
+## Features
 
-All JK-BMS models with software version `>=6.0` are using the implemented protocol and should be supported.
+- **Direct serial** — connect the BMS GPS/UART-TTL port to the Pi via any cheap CP2102/CH340 USB-TTL adapter. No ESP, no MQTT, no extra service.
+- **Read** — total voltage, current, power, SOC, per-cell voltages (up to 24), cell delta/min/max, MOSFET + sensor temperatures, cycle count, capacity.
+- **Control** — toggle charging / discharging / balancer; set balance trigger voltage.
+- **Config Flow + YAML** — set up via UI (with port auto-discovery) or via `configuration.yaml`.
+- **Protocol agnostic** — both old JK (JK02 / GPS-style) and new JK-PB (Modbus-style) share enough framing that one parser handles both reading the status frame.
 
-## Requirements
-
-
-## Schematics
-
+## Hardware wiring
 
 ```
-                UART-TTL
-┌──────────┐                ┌─────────┐
-│          │<----- RX ----->│         │
-│  JK-BMS  │<----- TX ----->│ ESP32/  │
-│          │<----- GND ---->│ ESP8266 │<-- 3.3V
-│          │                │         │<-- GND
-└──────────┘                └─────────┘
-
-# UART-TTL socket (4 Pin, JST 1.25mm pitch)
-┌─── ─────── ────┐
-│                │
-│ O   O   O   O  │
-│GND  RX  TX VBAT│
-└────────────────┘
-  │   │   │
-  │   │   └─── GPIO17 (`rx_pin`)
-  │   └─────── GPIO16 (`tx_pin`)
-  └─────────── GND
+JK-BMS GPS / UART-TTL port      USB-TTL adapter        Raspberry Pi
+┌──────────────────────────┐   ┌────────────────┐
+│  GND  RX  TX  VBAT       │   │  GND TX RX VCC │  ──USB──►  /dev/ttyUSB0
+│   │    │   │   x         │   │   │  │  │  3V3 │
+│   └────┼───┼───────────────│  GND │  │   x    │
+│        └───┼───────────────│      RX │        │
+│            └───────────────│         TX       │
+└──────────────────────────┘   └────────────────┘
 ```
 
-
-The UART-TTL (labeled as `RS485`) socket of the BMS can be attached to any UART pins of the ESP. A hardware UART should be preferred because of the high baudrate (115200 baud). The connector is called 4 Pin JST with 1.25mm pitch.
+- **Do not connect VBAT** — it's full battery voltage and will fry the adapter.
+- Use a 3.3 V capable USB-TTL adapter (CP2102, CH340 with 3V3 jumper, FT232 set to 3V3).
+- For JK-PB with RS485: use an RS485-USB adapter and connect A/B.
 
 ## Installation
 
-HACS
+### Via HACS
 
+1. HACS → ⋮ → Custom repositories → add `https://github.com/Gruni22/ha-jk-bms`, category *Integration*.
+2. Install **JK BMS**, restart HA.
+3. Settings → Devices & Services → **Add Integration** → *JK BMS*.
+
+### Manual
+
+Copy `custom_components/jk_bms/` into your `/config/custom_components/` directory and restart Home Assistant.
+
+## Configuration
+
+### UI
+
+Settings → Devices & Services → **Add Integration** → *JK BMS*. The integration scans `/dev/serial/by-id` and any `/dev/ttyUSB*` / `/dev/ttyAMA*` ports. Pick yours, choose baudrate (default 115200), confirm.
+
+### YAML
+
+```yaml
+jk_bms:
+  - serial_port: /dev/serial/by-id/usb-1a86_USB_Single_Serial_xxxxxxx-if00-port0
+    baudrate: 115200
+    scan_interval: 10
+    protocol: auto       # auto | jk02 | jkpb
 ```
 
-## Example response all sensors enabled
+YAML entries are imported on startup and become regular config entries you can later manage in the UI.
 
-```
-[sensor:127]: 'jk-bms cell voltage 1': Sending state 4.12500 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 2': Sending state 4.12500 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 3': Sending state 4.12800 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 4': Sending state 4.12400 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 5': Sending state 4.12500 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 6': Sending state 4.12800 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 7': Sending state 4.12400 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 8': Sending state 4.12300 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 9': Sending state 4.12800 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 10': Sending state 4.12800 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 11': Sending state 4.12800 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 12': Sending state 4.13100 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage 13': Sending state 4.12400 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms power tube temperature': Sending state 24.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms temperature sensor 1': Sending state 22.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms temperature sensor 2': Sending state 22.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms total voltage': Sending state 53.64000 V with 2 decimals of accuracy
-[sensor:127]: 'jk-bms current': Sending state -0.00000 A with 2 decimals of accuracy
-[sensor:127]: 'jk-bms capacity remaining': Sending state 99.00000 % with 0 decimals of accuracy
-[sensor:127]: 'jk-bms temperature sensors': Sending state 2.00000  with 0 decimals of accuracy
-[sensor:127]: 'jk-bms charging cycles': Sending state 0.00000  with 0 decimals of accuracy
-[sensor:127]: 'jk-bms total charging cycle capacity': Sending state 0.00000  with 0 decimals of accuracy
-[sensor:127]: 'jk-bms battery strings': Sending state 13.00000  with 0 decimals of accuracy
-[sensor:127]: 'jk-bms errors bitmask': Sending state 0.00000  with 0 decimals of accuracy
-[text_sensor:015]: 'jk-bms errors': Sending state ''
-[sensor:127]: 'jk-bms operation mode bitmask': Sending state 0.00000  with 0 decimals of accuracy
-[text_sensor:015]: 'jk-bms operation mode': Sending state ''
-[sensor:127]: 'jk-bms total voltage overvoltage protection': Sending state 5.46000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms total voltage undervoltage protection': Sending state 3.77000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage overvoltage protection': Sending state 4.20000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage overvoltage recovery': Sending state 4.10000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage overvoltage delay': Sending state 5.00000 s with 0 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage undervoltage protection': Sending state 2.90000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage undervoltage recovery': Sending state 3.20000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms cell voltage undervoltage delay': Sending state 5.00000 s with 0 decimals of accuracy
-[sensor:127]: 'jk-bms cell pressure difference protection': Sending state 0.30000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms discharging overcurrent protection': Sending state 60.00000 A with 0 decimals of accuracy
-[sensor:127]: 'jk-bms discharging overcurrent delay': Sending state 300.00000 s with 0 decimals of accuracy
-[sensor:127]: 'jk-bms charging overcurrent protection': Sending state 25.00000 A with 0 decimals of accuracy
-[sensor:127]: 'jk-bms charging overcurrent delay': Sending state 30.00000 s with 0 decimals of accuracy
-[sensor:127]: 'jk-bms balance starting voltage': Sending state 3.30000 V with 3 decimals of accuracy
-[sensor:127]: 'jk-bms balance opening pressure difference': Sending state 0.01000 V with 3 decimals of accuracy
-[switch:045]: 'jk-bms balancing': Sending state ON
-[sensor:127]: 'jk-bms power tube temperature protection': Sending state 90.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms power tube temperature recovery': Sending state 70.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms temperature sensor temperature protection': Sending state 100.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms temperature sensor temperature recovery': Sending state 100.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms temperature sensor temperature difference protection': Sending state 20.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms charging high temperature protection': Sending state 70.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms discharging high temperature protection': Sending state 70.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms charging low temperature protection': Sending state -20.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms charging low temperature recovery': Sending state -10.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms discharging low temperature protection': Sending state -20.00000 °C with 0 decimals of accuracy
-[sensor:127]: 'jk-bms discharging low temperature recovery': Sending state -10.00000 °C with 0 decimals of accuracy
-[switch:045]: 'jk-bms charging': Sending state OFF
-[switch:045]: 'jk-bms discharging': Sending state OFF
-[sensor:127]: 'jk-bms current calibration': Sending state 0.72500 A with 3 decimals of accuracy
-[sensor:127]: 'jk-bms device address': Sending state 1.00000  with 0 decimals of accuracy
-[text_sensor:015]: 'jk-bms battery type': Sending state 'Ternary Lithium'
-[sensor:127]: 'jk-bms sleep wait time': Sending state 10.00000 s with 0 decimals of accuracy
-[sensor:127]: 'jk-bms alarm low volume': Sending state 20.00000  with 0 decimals of accuracy
-[text_sensor:015]: 'jk-bms password': Sending state '123456'
-[switch:045]: 'jk-bms dedicated charger': Sending state OFF
-[text_sensor:015]: 'jk-bms device type': Sending state 'Input Us'
-[sensor:127]: 'jk-bms total runtime': Sending state 0.00000 h with 0 decimals of accuracy
-[text_sensor:015]: 'jk-bms software version': Sending state 'H7.X__S7.1.0H__'
-[sensor:127]: 'jk-bms actual_battery_capacity': Sending state 186.00000 Ah with 0 decimals of accuracy
-[text_sensor:015]: 'jk-bms manufacturer': Sending state 'BT3072020120000200521001'
-[sensor:127]: 'jk-bms protocol version': Sending state 1.00000  with 0 decimals of accuracy
-```
+## Provided entities
 
-## Known issues
+**Sensors:** total voltage, current, power, SOC, cell 1..N voltage, cell avg/min/max/delta, cell min/max index, temp sensor 1/2, MOSFET temp, cycle count, total cycle capacity, cell count.
 
+**Binary sensors:** charging, discharging, error.
 
-## Debugging
+**Switches:** charging enabled, discharging enabled, balancer enabled.
 
-If this component doesn't work out of the box for your device please update your configuration to enable the debug output of the UART component and increase the log level to the see outgoing and incoming serial traffic:
+**Numbers:** balance trigger voltage.
 
-```
+> Switches write to BMS holding registers `0xAB`/`0xAC`/`0xAD` after authenticating. The BMS does not always echo new values immediately — give it one poll cycle to confirm.
+
+## Compatibility
+
+| BMS family       | Protocol      | Status   |
+|------------------|---------------|----------|
+| JK-Bx, JK-Cx     | JK02 (GPS)    | tested   |
+| JK-PB series     | JK-Modbus     | tested   |
+| Heltec balancer  | —             | not yet  |
+
+Tested with firmware ≥ 6.0 (the same minimum syssi documents).
+
+## Troubleshooting
+
+Enable debug logging:
+
+```yaml
 logger:
-  level: DEBUG
-
-uart:
-  - id: uart_0
-    baud_rate: 115200
-    rx_buffer_size: 384
-    tx_pin: ${tx_pin}
-    rx_pin: ${rx_pin}
-    debug:
-      direction: BOTH
+  default: info
+  logs:
+    custom_components.jk_bms: debug
 ```
 
-## References
+Common issues:
 
-* https://secondlifestorage.com/index.php?threads/jk-b1a24s-jk-b2a24s-active-balancer.9591/
-* https://github.com/jblance/jkbms
-* https://github.com/jblance/mpp-solar/issues/112
-* https://github.com/jblance/mpp-solar/blob/master/mppsolar/protocols/jk232.py
-* https://github.com/jblance/mpp-solar/blob/master/mppsolar/protocols/jk485.py
-* https://github.com/sshoecraft/jktool
-* https://github.com/Louisvdw/dbus-serialbattery/blob/master/etc/dbus-serialbattery/jkbms.py
-* https://blog.ja-ke.tech/2020/02/07/ltt-power-bms-chinese-protocol.html
+- **`cannot_connect` in setup** — wrong RX/TX wiring (90% of the time). Swap them.
+- **CRC errors in log** — bad cable or wrong baudrate. The JK uses 115200 8N1.
+- **No data after first poll** — BMS may need a few seconds after power-up.
+
+## Credits
+
+- Frame format, register map and field semantics: [syssi/esphome-jk-bms](https://github.com/syssi/esphome-jk-bms) (Apache-2.0).
+- Modbus-style protocol docs: JK BMS RS485 Modbus V1.1 (vendor PDF, mirrored in the syssi repo).
+
+## License
+
+Apache-2.0 — same as the upstream ESPHome project this is based on.
