@@ -1,12 +1,6 @@
-# esphome-jk-bms
+# ha-jk-bms
 
-![GitHub actions](https://github.com/syssi/esphome-jk-bms/actions/workflows/ci.yaml/badge.svg)
-![GitHub stars](https://img.shields.io/github/stars/syssi/esphome-jk-bms)
-![GitHub forks](https://img.shields.io/github/forks/syssi/esphome-jk-bms)
-![GitHub watchers](https://img.shields.io/github/watchers/syssi/esphome-jk-bms)
-[!["Buy Me A Coffee"](https://img.shields.io/badge/buy%20me%20a%20coffee-donate-yellow.svg)](https://www.buymeacoffee.com/syssi)
-
-ESPHome component to monitor a Jikong Battery Management System (JK-BMS) via UART-TTL or BLE
+Home Assistant custom component to monitor a Jikong Battery Management System (JK-BMS) via UART-TTL
 
 ![Lovelace entities card](lovelace-entities-card.png "Lovelace entities card")
 
@@ -14,67 +8,10 @@ ESPHome component to monitor a Jikong Battery Management System (JK-BMS) via UAR
 
 All JK-BMS models with software version `>=6.0` are using the implemented protocol and should be supported.
 
-* JK-BD4A8S4P, hw 11.xw, sw 11.24, using `JK02_32S` (reported by [@austin202220](https://github.com/syssi/esphome-jk-bms/issues/297))
-* JK-BD6A17S6P, hw 7.2, sw 7.1.0H
-* JK-BD6A17S8P, hw 9.x, sw 9.01G (reported by [@jonadis](https://github.com/syssi/esphome-jk-bms/issues/35#issuecomment-1035312712))
-* JK-BD6A20S10P, hw 10.XW, sw 10.07 (reported by [@adadrag](https://github.com/syssi/esphome-jk-bms/issues/123))
-* JK-BD6A20S12P, hw 11.XW, sw 11.281, using UART-TTL (reported by [@asiridissa](https://github.com/syssi/esphome-jk-bms/discussions/339))
-* JK-BD6A20S6P, hw 11.XW, sw 11.42, using UART-TTL (reported by [@parumsancto](https://github.com/syssi/esphome-jk-bms/issues/537))
-* JK-BD6A24S6P, hw 6.x, sw 6.10S (reported by [@ziporah](https://github.com/syssi/esphome-jk-bms/issues/41))
-* JK-BD6A24S10P, hw 8.x, sw 8.0.6G (reported by [@spoonwzd](https://github.com/syssi/esphome-jk-bms/issues/67#issuecomment-1093844076))
-* JK-BD6A24S10P, hw 10.xw, sw 10.09 (reported by [@PMPoulsen](https://github.com/syssi/esphome-jk-bms/discussions/261#discussioncomment-5091812))
-* JK-BD6A24S12P, hw 11.XW, sw 11.36, using `JK02_32S` (BLE) (reported by [@hackmannbr](https://github.com/syssi/esphome-jk-bms/issues/674))
-* JK-BD6A24S12P, hw 11.XW, sw 11.42, using `JK02_32S` (BLE) (reported by [@Viper7000](https://github.com/syssi/esphome-jk-bms/issues/702))
-* JK-BD4A17S4P, hw 11.xw, sw 11.01 (reported by [@Condor-XYZ](https://github.com/syssi/esphome-jk-bms/issues/221))
-* JK-BD4A17S4P, hw 11.xw, sw 11.27, using `JK02_32S` and/or UART-TTL (reported by [@hemskgren](https://github.com/syssi/esphome-jk-bms/issues/359))
-* JK-B1A8S10P, hw 11.XW, sw 11.261, using `JK02_32S` (reported by [@Chickenbreast0](https://github.com/syssi/esphome-jk-bms/issues/346))
-* JK-B1A16S15P, hw 11.5, sw 11.261, using `JK02_32S` (reported by [@delboy711](https://github.com/syssi/esphome-jk-bms/discussions/368))
-* JK-B1A24S15P, hw 8.x, sw 8.1.0H (reported by [@killee](https://github.com/syssi/esphome-jk-bms/discussions/4))
-* JK-B1A20S15P, hw 8.x, sw 8.14U (reported by  [@trippfam07](https://github.com/syssi/esphome-jk-bms/issues/31))
-* JK-B1A20S15P, hw 10.xw, sw 10.07 (reported by [@romeox44](https://github.com/syssi/esphome-jk-bms/discussions/125))
-* JK-B1A20S15P, hw 10.xw, sw 10.10, using `JK02_24S` (reported by [@austin202220](https://github.com/syssi/esphome-jk-bms/issues/297#issuecomment-1510685683))
-* JK-B1A20S15P, hw 11.xw, sw 11.26, using UART-TTL (reported by [@Tesla72PL](https://github.com/syssi/esphome-jk-bms/issues/309))
-* JK-B2A24S15P, hw 6.x, sw 6.1.3S (reported by [@miguel300477](https://github.com/syssi/esphome-jk-bms/issues/57))
-* JK-B2A24S15P, hw 8.x, sw 8.21W (reported by [@mariusvaida](https://github.com/syssi/esphome-jk-bms/issues/120))
-* JK-B2A24S15P, hw 10.xw, sw 10.07, using `JK02_24S` (BLE) and UART-TTL
-* JK-B2A24S15P, hw 10.xw, sw 10.08 (reported by [@meccip](https://github.com/syssi/esphome-jk-bms/discussions/175#discussioncomment-3687287))
-* JK-B2A24S15P, hw 10.xw, sw 10.10, using UART-TTL (reported by [@nayias](https://github.com/syssi/esphome-jk-bms/discussions/257#discussioncomment-5062807))
-* JK-B2A24S20P, hw 8.x, sw 8.1.2H, using `JK02_24S` (reported by [@KlausLi](https://github.com/syssi/esphome-jk-bms/issues/15#issuecomment-961447064))
-* JK-B2A24S20P, hw 8.x, sw 8.20G, using `JK02_24S` (reported by [@rob-oravec](https://github.com/syssi/esphome-jk-bms/discussions/46))
-* JK-B2A24S20P, hw 10.X-W, sw 10.02, using `JK02_24S` (reported by [@SeByDocKy](https://github.com/syssi/esphome-jk-bms/issues/37#issuecomment-1040569576))
-* JK-B2A24S20P, hw 10.XG, sw 10.07D30, using `JK02_24S` (reported by [@TheSmartGerman](https://github.com/syssi/esphome-jk-bms/discussions/122))
-* JK-B2A24S20P, hw 10.XW, sw 10.07, using `JK02_24S` (reported by [@amagr0](https://github.com/syssi/esphome-jk-bms/issues/124#issuecomment-1166366196))
-* JK-B2A24S20P, hw 10.XW, sw 10.09, using `JK02_24S` (reported by [@Ghilm1986](https://github.com/syssi/esphome-jk-bms/issues/591))
-* JK-B2A8S20P,  hw 9.x, sw 9.01M3, using `JK02_24S` (reported by [@EasilyBoredEngineer](https://github.com/syssi/esphome-jk-bms/discussions/110))
-* JK-B2A8S20P, hw 9.x, sw 9.08W (reported by [@vrabi-cv](https://github.com/syssi/esphome-jk-bms/discussions/144#discussioncomment-3285901))
-* JK-B2A8S20P, hw 11.XW, sw 11.17, using `JK02_32S` (reported by [@senfkorn](https://github.com/syssi/esphome-jk-bms/issues/147))
-* JK-B2A8S20P, hw 11.XW, sw 11.26, using `JK02_32S` (reported by [@riker65](https://github.com/syssi/esphome-jk-bms/issues/276))
-* JK-B2A8S20P, hw 11.XA, sw 11.48, using UART-TTL (reported by [@BytEvil](https://github.com/syssi/esphome-jk-bms/issues/588))
-* JK-B2A20S20P, hw 10.XW, sw 10.09 (reported by [@markusgg84](https://github.com/syssi/esphome-jk-bms/discussions/173))
-* JK-B2A20S20P, hw 10.XW, sw 10.10, using `JK02_24S` (reported by [@cygeus](https://github.com/syssi/esphome-jk-bms/issues/455))
-* JK-B2A20S20P, hw 10.XW, sw 11.21h, using `JK02_32S` (reported by [@Salve87](https://github.com/syssi/esphome-jk-bms/issues/308#issuecomment-1505614325))
-* JK-B2A20S20P, hw 11.XW, sw 11.24H, using `JK02_32S` (reported by [@austin202220](https://github.com/syssi/esphome-jk-bms/discussions/232))
-* JK-B2A20S20P, hw 11.XW, sw 11.25H, using `JK02_32S` (reported by [@iovcharyk](https://github.com/syssi/esphome-jk-bms/issues/249))
-* JK-B2A20S20P, hw 11.XW, sw 11.284, using `JK02_32S` (BLE) and UART-TTL (reported by [@martinSezman](https://github.com/syssi/esphome-jk-bms/issues/458))
-* JK-B2A20S20P, hw 11.XA, sw 11.48, using `JK02_32S` (BLE) (reported by [@DadasupR](https://github.com/syssi/esphome-jk-bms/issues/701))
-* JK-B2A20S20P, hw 11.U, sw 11.54, using `JK02_32S` (BLE) (reported by [@DadasupR](https://github.com/syssi/esphome-jk-bms/issues/701))
-* JK-B5A24S, hw 8.x, sw 8.0.3M, using `JK04` (reported by [@JSladen](https://github.com/syssi/esphome-jk-bms/issues/213))
-* JK-B2A16S, hw 3.0, sw 3.3.0, using `JK04` (reported by [@magnetus26](https://github.com/syssi/esphome-jk-bms/discussions/48))
-* GW-24S4EB (NEEY/Heltec 4A Smart Active Balancer), hw HW-2.8.0, sw ZH-1.2.3 (reported by [@cristi2005](https://github.com/syssi/esphome-jk-bms/issues/109))
-* GW-24S4EB (NEEY 4A Smart Active Balancer 4th generation), hw HW-3.2.0, sw ZH-1.2.4 (reported by [@fabhund](https://github.com/syssi/esphome-jk-bms/issues/310))
-* EK-24S15EB (NEEY 15A Smart Active Balancer), (reported by [@msevestre31](https://github.com/syssi/esphome-jk-bms/issues/487))
-* EK-24S10EB (NEEY 10A Smart Active Balancer), hw HW-1.1.5, sw SW-1.1.1, (reported by [@chipsi](https://github.com/syssi/esphome-jk-bms/discussions/487#discussioncomment-9013069))
-
 ## Requirements
 
-* [ESPHome 2025.11.0 or higher](https://github.com/esphome/esphome/releases).
-* Generic ESP32 or ESP8266 board
 
 ## Schematics
-
-<a href="https://raw.githubusercontent.com/syssi/esphome-jk-bms/main/images/circuit.jpg" target="_blank">
-<img src="https://raw.githubusercontent.com/syssi/esphome-jk-bms/main/images/circuit_thumbnail.jpg" width="50%">
-</a>
 
 
 ```
@@ -103,43 +40,7 @@ The UART-TTL (labeled as `RS485`) socket of the BMS can be attached to any UART 
 
 ## Installation
 
-You can install this component with [ESPHome external components feature](https://esphome.io/components/external_components.html) like this:
-```yaml
-external_components:
-  - source: github://syssi/esphome-jk-bms@main
-```
-
-or just use the `esp32-example.yaml` as proof of concept:
-
-```bash
-# Install esphome
-pip3 install esphome
-
-# Clone this external component
-git clone https://github.com/syssi/esphome-jk-bms.git
-cd esphome-jk-bms
-
-# Create a secrets.yaml containing some setup specific secrets
-cat > secrets.yaml <<EOF
-wifi_ssid: MY_WIFI_SSID
-wifi_password: MY_WIFI_PASSWORD
-
-mqtt_host: MY_MQTT_HOST
-mqtt_username: MY_MQTT_USERNAME
-mqtt_password: MY_MQTT_PASSWORD
-
-# BMS MAC address(es) — replace with the actual Bluetooth address of your device(s)
-bms0_mac_address: C8:47:8C:E1:E2:AA
-bms1_mac_address: C8:47:8C:E1:E2:BB
-
-# Heltec/NEEY balancer MAC address(es) — only needed for balancer example configurations
-balancer0_mac_address: C8:47:8C:E1:E2:AA
-balancer1_mac_address: C8:47:8C:E1:E2:BB
-EOF
-
-# Validate the configuration, create a binary, upload it, and start logs
-# If you use a esp8266 run the esp8266-example.yaml
-esphome run esp32-example.yaml
+HACS
 
 ```
 
@@ -219,17 +120,6 @@ esphome run esp32-example.yaml
 
 ## Known issues
 
-* The battery type sensor is pretty useless because the BMS reports always the same value (`Ternary Lithium`). Regardless of which battery type was set / parameter set was loaded via the android app. ([#9][i9])
-* ESP32: Adding all supported sensors can lead to a stack overflow / boot loop. This can be solved by increasing the stack size. ([#63][i63])
-
-[i9]: https://github.com/syssi/esphome-jk-bms/issues/9
-[i63]: https://github.com/syssi/esphome-jk-bms/issues/63
-
-## Goodies
-
-A user of this project ([@dr3amr](https://github.com/dr3amr)) shared some [Home Assistant Lovelace UI cards for a beautiful dashboard here](https://github.com/syssi/esphome-jk-bms/discussions/230).
-
-![Custom Lovelace UI cards](images/lovelace-cards-contribution.jpg "Home Assistant Lovelace UI cards")
 
 ## Debugging
 
