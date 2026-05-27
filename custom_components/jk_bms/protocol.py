@@ -398,6 +398,11 @@ _U16_RECORDS: dict[int, tuple[str, float, bool, int]] = {
 # Bekannte Records, die wir nur konsumieren (zur Sync-Erhaltung), aber nicht
 # als Entität anbieten. Breite = Datenbytes nach der Record-ID.
 _SKIP_RECORDS: dict[int, int] = {
+    0xA9: 1,   # battery string setting (u8) — MUSS konsumiert werden, sonst
+               # desynchronisiert der Record-Strom genau vor 0xAA: der
+               # Unbekannt-Fallback (2 Byte) verschluckt sonst 0xAA (Nenn-
+               # kapazität) und 0xAB (Ladeschalter). Breite 1 Byte verifiziert
+               # gegen syssi/esphome-jk-bms (offset+8+3*36 -> offset+10+3*36).
     0xAE: 1,   # protection board address
     0xB2: 10,  # parameter password (nicht als Sensor exponiert)
     0xB5: 4,   # manufacturing date (unparsed)
@@ -437,6 +442,7 @@ def parse_status_payload(payload: bytes) -> BmsState:
         0x8C  operation mode bitmask (u16)
         0x8E..0xB0  Schutz-/Settings-Records (siehe _U16_RECORDS)
         0x9D  active balance switch (u8)  -> balancer_switch
+        0xA9  battery string setting (u8)  -> nur konsumiert (siehe _SKIP_RECORDS)
         0xAA  total battery capacity setting (u32 Ah)  -> nominal_capacity_ah
         0xAB  charging switch (u8)
         0xAC  discharging switch (u8)

@@ -173,6 +173,25 @@ def test_current_calibration_0xad_consumes_two_bytes() -> None:
     assert state.balancer_switch is None                 # 0xAD ist NICHT der Balancer
 
 
+def test_record_0xa9_does_not_desync_capacity_and_switch() -> None:
+    """0xA9 (battery string setting, 1 Byte) darf den Strom nicht desyncen.
+
+    Regression: fehlte 0xA9 in der Breitentabelle, verschluckte der 2-Byte-
+    Unbekannt-Fallback die nachfolgenden 0xAA (Nennkapazität) und 0xAB
+    (Ladeschalter) — beide blieben dann 'unknown'.
+    """
+    payload = bytes([0x85, 0x64])                        # SOC 100 %
+    payload += bytes([0xA9, 0x04])                       # battery string setting = 4
+    payload += bytes([0xAA, 0x00, 0x00, 0x00, 0x28])     # nominal 40 Ah
+    payload += bytes([0xAB, 0x01])                       # charging switch on
+    payload += bytes([0xAC, 0x01])                       # discharging switch on
+    state = parse_status_payload(payload)
+    assert state.nominal_capacity_ah == 40.0
+    assert state.capacity_remaining_ah == 40.0           # 40 * 100/100
+    assert state.charging_switch is True
+    assert state.discharging_switch is True
+
+
 def test_operation_mode_and_balancing() -> None:
     """0x8C-Bitmaske: Bit0=Charging, Bit2=Balancing."""
     payload = bytes([0x8C, 0x00, 0x05])                  # Bits 0 und 2
