@@ -71,6 +71,47 @@ YAML entries are imported on startup and become regular config entries you can l
 
 > Switches write to BMS holding registers `0xAB`/`0xAC`/`0xAD` after authenticating. The BMS does not always echo new values immediately — give it one poll cycle to confirm.
 
+## jk-bms-card (Lovelace) compatibility
+
+This integration is built to work out-of-the-box with the
+[**jk-bms-card**](https://github.com/Pho3niX90/jk-bms-card) — **without any manual
+entity mapping**.
+
+The card resolves entities as `<domain>.<prefix>_<key>` (default `prefix: jk_bms`).
+To match this regardless of your Home Assistant language, the integration pins a
+**fixed, English `entity_id`** for every entity (the *display* names stay
+translated). With a device named *JK BMS* you get e.g.:
+
+| Card key | entity_id |
+|---|---|
+| `total_voltage` | `sensor.jk_bms_total_voltage` |
+| `delta_cell_voltage` | `sensor.jk_bms_delta_cell_voltage` |
+| `average_cell_voltage` | `sensor.jk_bms_average_cell_voltage` |
+| `power_tube_temperature` | `sensor.jk_bms_power_tube_temperature` |
+| `min/max_voltage_cell` | `sensor.jk_bms_min/max_voltage_cell` |
+| `cell_voltage_1…N` | `sensor.jk_bms_cell_voltage_1…N` |
+| `charging` / `discharging` / `balancer` | `switch.jk_bms_…` |
+| `balancing` | `binary_sensor.jk_bms_balancing` |
+
+So a minimal card config is simply:
+
+```yaml
+type: custom:jk-bms-card
+prefix: jk_bms
+cellCount: 4        # match your pack
+```
+
+> **Existing installation:** entity_ids are only assigned when an entity is *first*
+> created. If your BMS was already set up before this version, its entities keep
+> their old IDs. To switch to the English/card-compatible IDs, **remove and
+> re-add the integration** (Settings → Devices & Services → JK BMS → delete, then
+> *Add Integration* again). Long-term statistics for the old IDs are lost.
+
+**Not available on this protocol** (the card hides or zeroes them automatically):
+`balancing_current`, `hardware_version`, and per-cell `cell_resistance_*` are only
+reported by the newer JK02_32S/BLE protocol, not the serial JK02/JK-PB frames this
+integration reads. `heater` requires heater hardware (`hasHeater: 1` in the card).
+
 ## Compatibility
 
 | BMS family       | Protocol      | Status   |

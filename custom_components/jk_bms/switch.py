@@ -59,7 +59,7 @@ class JkBmsSwitch(JkBmsBaseEntity, SwitchEntity):
     def __init__(
         self, coordinator: JkBmsCoordinator, description: JkSwitchDescription
     ) -> None:
-        super().__init__(coordinator, description.key)
+        super().__init__(coordinator, description.key, entity_id_domain="switch")
         self.entity_description = description
 
     @property

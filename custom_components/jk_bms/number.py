@@ -59,7 +59,7 @@ class JkBmsNumber(JkBmsBaseEntity, NumberEntity):
     def __init__(
         self, coordinator: JkBmsCoordinator, description: JkNumberDescription
     ) -> None:
-        super().__init__(coordinator, description.key)
+        super().__init__(coordinator, description.key, entity_id_domain="number")
         self.entity_description = description
         self._cached_value: float | None = None
 

@@ -74,7 +74,7 @@ class JkBmsBinarySensor(JkBmsBaseEntity, BinarySensorEntity):
     def __init__(
         self, coordinator: JkBmsCoordinator, description: JkBinaryDescription
     ) -> None:
-        super().__init__(coordinator, description.key)
+        super().__init__(coordinator, description.key, entity_id_domain="binary_sensor")
         self.entity_description = description
 
     @property

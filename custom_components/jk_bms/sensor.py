@@ -563,7 +563,7 @@ class JkBmsSensor(JkBmsBaseEntity, SensorEntity):
     def __init__(
         self, coordinator: JkBmsCoordinator, description: JkSensorDescription
     ) -> None:
-        super().__init__(coordinator, description.key)
+        super().__init__(coordinator, description.key, entity_id_domain="sensor")
         self.entity_description = description
 
     @property
@@ -580,7 +580,13 @@ class JkBmsCellSensor(JkBmsBaseEntity, SensorEntity):
     _attr_suggested_display_precision = 3
 
     def __init__(self, coordinator: JkBmsCoordinator, idx: int) -> None:
-        super().__init__(coordinator, f"cell_{idx}_voltage")
+        # Karten-Suffix ist cell_voltage_<n> (nicht cell_<n>_voltage).
+        super().__init__(
+            coordinator,
+            f"cell_{idx}_voltage",
+            entity_id_domain="sensor",
+            object_id_key=f"cell_voltage_{idx}",
+        )
         self._idx = idx
         self._attr_name = f"Cell {idx} voltage"
 
